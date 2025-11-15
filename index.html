@@ -1,142 +1,666 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
 <head>
-<meta charset="UTF-8">
-<title>Unified Physics Engine Full Demo</title>
-<style>
-  body { margin:0; overflow:hidden; display:flex; }
-  canvas { flex:1; display:block; }
-</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>2D/3D Physics Demo</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      color: #fff;
+    }
+    
+    .container {
+      width: 95%;
+      max-width: 1400px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      border-radius: 20px;
+      padding: 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+    
+    h1 {
+      text-align: center;
+      margin-bottom: 10px;
+      font-size: 2.5em;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+    }
+    
+    .subtitle {
+      text-align: center;
+      margin-bottom: 30px;
+      opacity: 0.9;
+      font-size: 1.1em;
+    }
+    
+    .controls {
+      display: flex;
+      gap: 15px;
+      margin-bottom: 25px;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+    }
+    
+    button {
+      background: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      padding: 12px 24px;
+      border-radius: 12px;
+      cursor: pointer;
+      font-size: 16px;
+      font-weight: 600;
+      transition: all 0.3s ease;
+      backdrop-filter: blur(5px);
+    }
+    
+    button:hover {
+      background: rgba(255, 255, 255, 0.3);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    
+    button.active {
+      background: rgba(255, 255, 255, 0.4);
+      border-color: rgba(255, 255, 255, 0.6);
+    }
+    
+    .canvas-container {
+      position: relative;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 15px;
+      overflow: hidden;
+      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+    }
+    
+    .stats {
+      position: absolute;
+      top: 15px;
+      left: 15px;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 15px;
+      border-radius: 10px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.6;
+      backdrop-filter: blur(5px);
+    }
+    
+    .info {
+      text-align: center;
+      margin-top: 20px;
+      opacity: 0.8;
+      font-size: 14px;
+    }
+    
+    .loading {
+      text-align: center;
+      padding: 50px;
+      font-size: 1.5em;
+    }
+    
+    .error {
+      text-align: center;
+      padding: 30px;
+      background: rgba(255, 0, 0, 0.2);
+      border-radius: 10px;
+      margin: 20px 0;
+    }
+  </style>
 </head>
 <body>
-<canvas id="canvas2D"></canvas>
-<canvas id="canvas3D"></canvas>
-<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-<script>
-// ----------------------------
-// Minimal Unified Physics Engine Classes (Fixed)
-// ----------------------------
-class Vec2 { constructor(x,y){this.x=x;this.y=y;} add(v){this.x+=v.x;this.y+=v.y;} clone(){return new Vec2(this.x,this.y);} }
-class Vec3 { constructor(x,y,z){this.x=x;this.y=y;this.z=z;} add(v){this.x+=v.x;this.y+=v.y;this.z+=v.z;} clone(){return new Vec3(this.x,this.y,this.z);} }
+  <div class="container">
+    <h1>🎮 Physics Engine Demo</h1>
+    <p class="subtitle">2D & 3D Unified Physics Simulation</p>
+    
+    <div id="loading" class="loading">
+      Loading UnifiedPhysicsEngine.js...
+    </div>
+    
+    <div id="error" class="error" style="display: none;"></div>
+    
+    <div id="main" style="display: none;">
+      <div class="controls">
+        <button id="btn2D" class="active">2D Mode</button>
+        <button id="btn3D">3D Mode</button>
+        <button id="btnAddCircle">Add Circle/Sphere</button>
+        <button id="btnAddBox">Add Box</button>
+        <button id="btnReset">Reset Scene</button>
+        <button id="btnPause">Pause</button>
+      </div>
+      
+      <div class="canvas-container">
+        <canvas id="canvas" width="1200" height="700"></canvas>
+        <div class="stats">
+          <div>Mode: <span id="statMode">2D</span></div>
+          <div>Bodies: <span id="statBodies">0</span></div>
+          <div>FPS: <span id="statFPS">60</span></div>
+          <div>Substeps: <span id="statSubsteps">4</span></div>
+        </div>
+      </div>
+      
+      <div class="info">
+        💡 Click on canvas to add objects • Drag to throw objects
+      </div>
+    </div>
+  </div>
 
-class Body {
-  constructor({type,pos,radius,halfWidth,halfHeight,halfExt,static:false}){
-    this.type=type; this.pos=pos; this.radius=radius||0;
-    this.halfWidth=halfWidth||0; this.halfHeight=halfHeight||0;
-    this.halfExt=halfExt||new Vec3(0,0,0);
-    this.static=static;
-    this.vel = (pos instanceof Vec2) ? new Vec2(0,0) : new Vec3(0,0,0);
-  }
-}
-
-class PhysicsWorld {
-  constructor(mode){this.mode=mode; this.bodies=[]; this.gravity=(mode==='2D')?new Vec2(0,500):new Vec3(0,-9.8,0);} 
-  addBody(b){this.bodies.push(b);}
-  step(dt){
-    for(const b of this.bodies){
-      if(!b.static){
-        if(this.mode==='2D'){
-          b.vel.y += this.gravity.y*dt;
-          b.pos.add(new Vec2(b.vel.x*dt,b.vel.y*dt));
-          if(b.pos.y+b.halfHeight>canvas2D.height){ b.pos.y=canvas2D.height-b.halfHeight; b.vel.y*=-0.6; }
-        } else {
-          b.vel.y += this.gravity.y*dt;
-          if(!b.pos.x) b.pos.x = 0;
-          if(!b.pos.y) b.pos.y = 0;
-          if(!b.pos.z) b.pos.z = 0;
-          b.pos.add(new Vec3(b.vel.x*dt,b.vel.y*dt,b.vel.z*dt)); 
-          if(b.pos.y< -10){ b.pos.y=-10; b.vel.y*=-0.6; }
+  <script src="UnifiedPhysicsEngine.js"></script>
+  <script>
+    // エンジンのロード確認
+    window.addEventListener('load', () => {
+      const loading = document.getElementById('loading');
+      const error = document.getElementById('error');
+      const main = document.getElementById('main');
+      
+      if (typeof UnifiedPhysics === 'undefined') {
+        loading.style.display = 'none';
+        error.style.display = 'block';
+        error.innerHTML = `
+          <h3>⚠️ UnifiedPhysicsEngine.js が見つかりません</h3>
+          <p>同じディレクトリに UnifiedPhysicsEngine.js を配置してください。</p>
+        `;
+        return;
+      }
+      
+      loading.style.display = 'none';
+      main.style.display = 'block';
+      
+      // デモの初期化
+      initDemo();
+    });
+    
+    function initDemo() {
+      const { Vec2, Vec3, Body, PhysicsWorld } = UnifiedPhysics;
+      
+      const canvas = document.getElementById('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      let mode = '2D';
+      let world = new PhysicsWorld('2D', { substeps: 4, maxIters: 8 });
+      let isPaused = false;
+      let mouseDown = false;
+      let mouseStart = null;
+      let lastTime = performance.now();
+      let fps = 60;
+      
+      // UI要素
+      const btn2D = document.getElementById('btn2D');
+      const btn3D = document.getElementById('btn3D');
+      const btnAddCircle = document.getElementById('btnAddCircle');
+      const btnAddBox = document.getElementById('btnAddBox');
+      const btnReset = document.getElementById('btnReset');
+      const btnPause = document.getElementById('btnPause');
+      
+      // 2Dシーンの初期化
+      function init2D() {
+        mode = '2D';
+        world = new PhysicsWorld('2D', { 
+          gravity: new Vec2(0, 980),
+          substeps: 4,
+          maxIters: 8
+        });
+        
+        // 地面
+        world.addBody(new Body({
+          dim: '2D',
+          type: 'box',
+          pos: new Vec2(600, 650),
+          halfWidth: 600,
+          halfHeight: 50,
+          static: true,
+          restitution: 0.3
+        }));
+        
+        // 壁
+        world.addBody(new Body({
+          dim: '2D',
+          type: 'box',
+          pos: new Vec2(50, 350),
+          halfWidth: 50,
+          halfHeight: 350,
+          static: true,
+          restitution: 0.3
+        }));
+        
+        world.addBody(new Body({
+          dim: '2D',
+          type: 'box',
+          pos: new Vec2(1150, 350),
+          halfWidth: 50,
+          halfHeight: 350,
+          static: true,
+          restitution: 0.3
+        }));
+        
+        // 斜めの台
+        world.addBody(new Body({
+          dim: '2D',
+          type: 'obb',
+          pos: new Vec2(300, 450),
+          halfWidth: 150,
+          halfHeight: 20,
+          angle: -0.3,
+          static: true,
+          restitution: 0.4
+        }));
+        
+        world.addBody(new Body({
+          dim: '2D',
+          type: 'obb',
+          pos: new Vec2(900, 450),
+          halfWidth: 150,
+          halfHeight: 20,
+          angle: 0.3,
+          static: true,
+          restitution: 0.4
+        }));
+        
+        // いくつかの動的オブジェクト
+        for (let i = 0; i < 5; i++) {
+          world.addBody(new Body({
+            dim: '2D',
+            type: 'circle',
+            pos: new Vec2(200 + i * 100, 100 + i * 50),
+            radius: 15 + Math.random() * 15,
+            restitution: 0.6,
+            friction: 0.3
+          }));
+        }
+        
+        for (let i = 0; i < 3; i++) {
+          world.addBody(new Body({
+            dim: '2D',
+            type: 'obb',
+            pos: new Vec2(700 + i * 80, 100 + i * 60),
+            halfWidth: 25,
+            halfHeight: 25,
+            angle: Math.random() * Math.PI,
+            restitution: 0.5,
+            friction: 0.4
+          }));
         }
       }
+      
+      // 3Dシーンの初期化
+      function init3D() {
+        mode = '3D';
+        world = new PhysicsWorld('3D', {
+          gravity: new Vec3(0, -980, 0),
+          substeps: 4,
+          maxIters: 8
+        });
+        
+        // 地面
+        world.addBody(new Body({
+          dim: '3D',
+          type: 'aabb',
+          pos: new Vec3(600, 680, 0),
+          halfExt: new Vec3(600, 20, 300),
+          static: true,
+          restitution: 0.3
+        }));
+        
+        // 壁
+        world.addBody(new Body({
+          dim: '3D',
+          type: 'aabb',
+          pos: new Vec3(50, 350, 0),
+          halfExt: new Vec3(50, 350, 300),
+          static: true,
+          restitution: 0.3
+        }));
+        
+        world.addBody(new Body({
+          dim: '3D',
+          type: 'aabb',
+          pos: new Vec3(1150, 350, 0),
+          halfExt: new Vec3(50, 350, 300),
+          static: true,
+          restitution: 0.3
+        }));
+        
+        // プラットフォーム
+        world.addBody(new Body({
+          dim: '3D',
+          type: 'aabb',
+          pos: new Vec3(400, 400, 0),
+          halfExt: new Vec3(100, 20, 100),
+          static: true,
+          restitution: 0.4
+        }));
+        
+        world.addBody(new Body({
+          dim: '3D',
+          type: 'aabb',
+          pos: new Vec3(800, 400, 0),
+          halfExt: new Vec3(100, 20, 100),
+          static: true,
+          restitution: 0.4
+        }));
+        
+        // いくつかの動的オブジェクト
+        for (let i = 0; i < 8; i++) {
+          const z = (i % 2) * 100 - 50;
+          world.addBody(new Body({
+            dim: '3D',
+            type: 'sphere',
+            pos: new Vec3(200 + i * 80, 100 + i * 40, z),
+            radius: 15 + Math.random() * 15,
+            restitution: 0.6,
+            friction: 0.3
+          }));
+        }
+      }
+      
+      // 描画関数
+      function render2D() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        for (const body of world.bodies) {
+          ctx.save();
+          
+          if (body.static) {
+            ctx.fillStyle = 'rgba(100, 100, 100, 0.8)';
+            ctx.strokeStyle = 'rgba(150, 150, 150, 0.9)';
+          } else {
+            ctx.fillStyle = body.sleeping ? 
+              'rgba(100, 150, 255, 0.6)' : 
+              'rgba(100, 200, 255, 0.8)';
+            ctx.strokeStyle = 'rgba(150, 220, 255, 0.9)';
+          }
+          ctx.lineWidth = 2;
+          
+          if (body.type === 'circle') {
+            ctx.beginPath();
+            ctx.arc(body.pos.x, body.pos.y, body.radius, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // 回転を示す線
+            ctx.beginPath();
+            ctx.moveTo(body.pos.x, body.pos.y);
+            ctx.lineTo(body.pos.x + body.radius, body.pos.y);
+            ctx.stroke();
+          } else if (body.type === 'box' || body.type === 'obb') {
+            const angle = body.angle || 0;
+            ctx.translate(body.pos.x, body.pos.y);
+            ctx.rotate(angle);
+            ctx.fillRect(-body.halfWidth, -body.halfHeight, 
+                        body.halfWidth * 2, body.halfHeight * 2);
+            ctx.strokeRect(-body.halfWidth, -body.halfHeight, 
+                          body.halfWidth * 2, body.halfHeight * 2);
+          }
+          
+          ctx.restore();
+        }
+      }
+      
+      function render3D() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        // 簡易的な3D投影（等角投影風）
+        const sortedBodies = [...world.bodies].sort((a, b) => a.pos.z - b.pos.z);
+        
+        for (const body of sortedBodies) {
+          ctx.save();
+          
+          // Z座標に基づくスケールと明度
+          const scale = 1 + body.pos.z * 0.001;
+          const brightness = 0.7 + body.pos.z * 0.0005;
+          
+          if (body.static) {
+            ctx.fillStyle = `rgba(${100*brightness}, ${100*brightness}, ${100*brightness}, 0.8)`;
+            ctx.strokeStyle = `rgba(${150*brightness}, ${150*brightness}, ${150*brightness}, 0.9)`;
+          } else {
+            ctx.fillStyle = body.sleeping ?
+              `rgba(${100*brightness}, ${150*brightness}, ${255*brightness}, 0.6)` :
+              `rgba(${100*brightness}, ${200*brightness}, ${255*brightness}, 0.8)`;
+            ctx.strokeStyle = `rgba(${150*brightness}, ${220*brightness}, ${255*brightness}, 0.9)`;
+          }
+          ctx.lineWidth = 2;
+          
+          const x = body.pos.x + body.pos.z * 0.3;
+          const y = body.pos.y - body.pos.z * 0.3;
+          
+          if (body.type === 'sphere') {
+            ctx.beginPath();
+            ctx.arc(x, y, body.radius * scale, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+            
+            // 影
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.beginPath();
+            ctx.ellipse(body.pos.x, 680, body.radius * 1.2, body.radius * 0.5, 0, 0, Math.PI * 2);
+            ctx.fill();
+          } else if (body.type === 'aabb' || body.type === 'obb3') {
+            const hw = body.halfExt.x * scale;
+            const hh = body.halfExt.y * scale;
+            const hd = body.halfExt.z * scale;
+            
+            // 簡易的な箱の描画（等角投影風）
+            ctx.translate(x, y);
+            
+            // 前面
+            ctx.fillRect(-hw, -hh, hw * 2, hh * 2);
+            ctx.strokeRect(-hw, -hh, hw * 2, hh * 2);
+            
+            // 上面（明るく）
+            ctx.fillStyle = body.static ?
+              `rgba(${120*brightness}, ${120*brightness}, ${120*brightness}, 0.8)` :
+              `rgba(${120*brightness}, ${220*brightness}, ${255*brightness}, 0.8)`;
+            ctx.beginPath();
+            ctx.moveTo(-hw, -hh);
+            ctx.lineTo(-hw + hd * 0.5, -hh - hd * 0.3);
+            ctx.lineTo(hw + hd * 0.5, -hh - hd * 0.3);
+            ctx.lineTo(hw, -hh);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // 側面（暗く）
+            ctx.fillStyle = body.static ?
+              `rgba(${80*brightness}, ${80*brightness}, ${80*brightness}, 0.8)` :
+              `rgba(${80*brightness}, ${180*brightness}, ${235*brightness}, 0.8)`;
+            ctx.beginPath();
+            ctx.moveTo(hw, -hh);
+            ctx.lineTo(hw + hd * 0.5, -hh - hd * 0.3);
+            ctx.lineTo(hw + hd * 0.5, hh - hd * 0.3);
+            ctx.lineTo(hw, hh);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+            
+            // 影
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.fillRect(body.pos.x - hw - 10, 680 - 5, hw * 2 + 20, 10);
+          }
+          
+          ctx.restore();
+        }
+      }
+      
+      // 更新ループ
+      function update() {
+        if (!isPaused) {
+          const now = performance.now();
+          const dt = Math.min((now - lastTime) / 1000, 0.033); // 最大33ms
+          lastTime = now;
+          
+          world.step(dt);
+          
+          // FPS計算
+          fps = fps * 0.9 + (1 / dt) * 0.1;
+        }
+        
+        if (mode === '2D') {
+          render2D();
+        } else {
+          render3D();
+        }
+        
+        // 統計更新
+        document.getElementById('statMode').textContent = mode;
+        document.getElementById('statBodies').textContent = world.bodies.length;
+        document.getElementById('statFPS').textContent = Math.round(fps);
+        document.getElementById('statSubsteps').textContent = world.substeps;
+        
+        requestAnimationFrame(update);
+      }
+      
+      // イベントハンドラ
+      btn2D.addEventListener('click', () => {
+        init2D();
+        btn2D.classList.add('active');
+        btn3D.classList.remove('active');
+      });
+      
+      btn3D.addEventListener('click', () => {
+        init3D();
+        btn3D.classList.add('active');
+        btn2D.classList.remove('active');
+      });
+      
+      btnAddCircle.addEventListener('click', () => {
+        if (mode === '2D') {
+          world.addBody(new Body({
+            dim: '2D',
+            type: 'circle',
+            pos: new Vec2(600, 50),
+            radius: 15 + Math.random() * 20,
+            restitution: 0.6,
+            friction: 0.3
+          }));
+        } else {
+          world.addBody(new Body({
+            dim: '3D',
+            type: 'sphere',
+            pos: new Vec3(600, 50, Math.random() * 100 - 50),
+            radius: 15 + Math.random() * 20,
+            restitution: 0.6,
+            friction: 0.3
+          }));
+        }
+      });
+      
+      btnAddBox.addEventListener('click', () => {
+        if (mode === '2D') {
+          world.addBody(new Body({
+            dim: '2D',
+            type: 'obb',
+            pos: new Vec2(600, 50),
+            halfWidth: 20 + Math.random() * 20,
+            halfHeight: 20 + Math.random() * 20,
+            angle: Math.random() * Math.PI,
+            restitution: 0.5,
+            friction: 0.4
+          }));
+        } else {
+          world.addBody(new Body({
+            dim: '3D',
+            type: 'aabb',
+            pos: new Vec3(600, 50, Math.random() * 100 - 50),
+            halfExt: new Vec3(
+              15 + Math.random() * 20,
+              15 + Math.random() * 20,
+              15 + Math.random() * 20
+            ),
+            restitution: 0.5,
+            friction: 0.4
+          }));
+        }
+      });
+      
+      btnReset.addEventListener('click', () => {
+        if (mode === '2D') {
+          init2D();
+        } else {
+          init3D();
+        }
+      });
+      
+      btnPause.addEventListener('click', () => {
+        isPaused = !isPaused;
+        btnPause.textContent = isPaused ? 'Resume' : 'Pause';
+      });
+      
+      // マウスインタラクション
+      canvas.addEventListener('mousedown', (e) => {
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        
+        mouseDown = true;
+        mouseStart = { x, y };
+      });
+      
+      canvas.addEventListener('mouseup', (e) => {
+        if (!mouseDown) return;
+        
+        const rect = canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
+        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
+        
+        const dx = x - mouseStart.x;
+        const dy = y - mouseStart.y;
+        
+        if (mode === '2D') {
+          world.addBody(new Body({
+            dim: '2D',
+            type: Math.random() > 0.5 ? 'circle' : 'obb',
+            pos: new Vec2(mouseStart.x, mouseStart.y),
+            radius: 15 + Math.random() * 15,
+            halfWidth: 20,
+            halfHeight: 20,
+            angle: Math.random() * Math.PI,
+            vel: new Vec2(dx * 2, dy * 2),
+            restitution: 0.6,
+            friction: 0.3
+          }));
+        } else {
+          world.addBody(new Body({
+            dim: '3D',
+            type: Math.random() > 0.5 ? 'sphere' : 'aabb',
+            pos: new Vec3(mouseStart.x, mouseStart.y, 0),
+            radius: 15 + Math.random() * 15,
+            halfExt: new Vec3(20, 20, 20),
+            vel: new Vec3(dx * 2, dy * 2, 0),
+            restitution: 0.6,
+            friction: 0.3
+          }));
+        }
+        
+        mouseDown = false;
+      });
+      
+      canvas.addEventListener('mouseleave', () => {
+        mouseDown = false;
+      });
+      
+      // 初期化と開始
+      init2D();
+      update();
     }
-  }
-}
-
-const UnifiedPhysics = {Vec2,Vec3,Body,PhysicsWorld};
-
-// ----------------------------
-// 2D Setup
-// ----------------------------
-const canvas2D = document.getElementById('canvas2D');
-canvas2D.width = window.innerWidth/2;
-canvas2D.height = window.innerHeight;
-const ctx2D = canvas2D.getContext('2d');
-const world2D = new UnifiedPhysics.PhysicsWorld('2D');
-const floor2D = new UnifiedPhysics.Body({type:'box', pos:new UnifiedPhysics.Vec2(canvas2D.width/2, canvas2D.height-10), halfWidth:canvas2D.width/2, halfHeight:10, static:true});
-world2D.addBody(floor2D);
-function add2DProp(){
-  if(Math.random()<0.5){
-    world2D.addBody(new UnifiedPhysics.Body({type:'circle', pos:new UnifiedPhysics.Vec2(Math.random()*canvas2D.width,50), radius:15+Math.random()*15}));
-  } else {
-    world2D.addBody(new UnifiedPhysics.Body({type:'obb', pos:new UnifiedPhysics.Vec2(Math.random()*canvas2D.width,50), halfWidth:15+Math.random()*15, halfHeight:15+Math.random()*15}));
-  }
-}
-canvas2D.addEventListener('click', add2DProp);
-
-// ----------------------------
-// 3D Setup
-// ----------------------------
-const canvas3D = document.getElementById('canvas3D');
-canvas3D.width = window.innerWidth/2;
-canvas3D.height = window.innerHeight;
-const renderer = new THREE.WebGLRenderer({canvas: canvas3D});
-renderer.setSize(canvas3D.width, canvas3D.height);
-const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x222222);
-const camera = new THREE.PerspectiveCamera(60, canvas3D.width/canvas3D.height, 0.1, 1000);
-camera.position.set(0,50,150);
-const light = new THREE.DirectionalLight(0xffffff,1);
-light.position.set(50,100,50);
-scene.add(light);
-
-const world3D = new UnifiedPhysics.PhysicsWorld('3D');
-const floor3D = new UnifiedPhysics.Body({type:'aabb', pos:new UnifiedPhysics.Vec3(0,-10,0), halfExt:new UnifiedPhysics.Vec3(100,5,100), static:true});
-world3D.addBody(floor3D);
-const floorMesh = new THREE.Mesh(new THREE.BoxGeometry(200,10,200), new THREE.MeshPhongMaterial({color:0x555555}));
-floorMesh.position.copy(floor3D.pos);
-scene.add(floorMesh);
-
-const meshes3D = [];
-function add3DProp(){
-  if(Math.random()<0.5){
-    const r = 5+Math.random()*10;
-    const body = new UnifiedPhysics.Body({type:'sphere', pos:new UnifiedPhysics.Vec3((Math.random()-0.5)*100,50,(Math.random()-0.5)*100), radius:r});
-    world3D.addBody(body);
-    const mesh = new THREE.Mesh(new THREE.SphereGeometry(r,16,16), new THREE.MeshPhongMaterial({color:0xff5500}));
-    mesh.userData.body = body; meshes3D.push(mesh); scene.add(mesh);
-  } else {
-    const ext = new UnifiedPhysics.Vec3(5+Math.random()*10,5+Math.random()*10,5+Math.random()*10);
-    const body = new UnifiedPhysics.Body({type:'obb3', pos:new UnifiedPhysics.Vec3((Math.random()-0.5)*100,50,(Math.random()-0.5)*100), halfExt:ext});
-    world3D.addBody(body);
-    const mesh = new THREE.Mesh(new THREE.BoxGeometry(ext.x*2,ext.y*2,ext.z*2), new THREE.MeshPhongMaterial({color:0x00aaff}));
-    mesh.userData.body = body; meshes3D.push(mesh); scene.add(mesh);
-  }
-}
-canvas3D.addEventListener('click', add3DProp);
-
-// ----------------------------
-// Animate Loop
-// ----------------------------
-function animate(){
-  requestAnimationFrame(animate);
-  world2D.step(1/60);
-  world3D.step(1/60);
-
-  ctx2D.clearRect(0,0,canvas2D.width,canvas2D.height);
-  for(const b of world2D.bodies){
-    ctx2D.save(); ctx2D.translate(b.pos.x,b.pos.y);
-    if(b.type==='circle'){ctx2D.beginPath();ctx2D.arc(0,0,b.radius,0,Math.PI*2);ctx2D.fillStyle='orange';ctx2D.fill();}
-    else{ctx2D.fillStyle='skyblue'; ctx2D.fillRect(-b.halfWidth,-b.halfHeight,b.halfWidth*2,b.halfHeight*2);}
-    ctx2D.restore();
-  }
-
-  for(const mesh of meshes3D){
-    const b = mesh.userData.body;
-    if(b.pos) mesh.position.copy(b.pos);
-  }
-  renderer.render(scene,camera);
-}
-animate();
-</script>
+  </script>
 </body>
 </html>

@@ -1,666 +1,510 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>2D/3D Physics Demo</title>
-  <style>
-    * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
-    }
-    
-    body {
-      font-family: 'Segoe UI', system-ui, sans-serif;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      min-height: 100vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      color: #fff;
-    }
-    
-    .container {
-      width: 95%;
-      max-width: 1400px;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      border-radius: 20px;
-      padding: 30px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    }
-    
-    h1 {
-      text-align: center;
-      margin-bottom: 10px;
-      font-size: 2.5em;
-      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-    }
-    
-    .subtitle {
-      text-align: center;
-      margin-bottom: 30px;
-      opacity: 0.9;
-      font-size: 1.1em;
-    }
-    
-    .controls {
-      display: flex;
-      gap: 15px;
-      margin-bottom: 25px;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-    }
-    
-    button {
-      background: rgba(255, 255, 255, 0.2);
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      color: white;
-      padding: 12px 24px;
-      border-radius: 12px;
-      cursor: pointer;
-      font-size: 16px;
-      font-weight: 600;
-      transition: all 0.3s ease;
-      backdrop-filter: blur(5px);
-    }
-    
-    button:hover {
-      background: rgba(255, 255, 255, 0.3);
-      transform: translateY(-2px);
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-    
-    button.active {
-      background: rgba(255, 255, 255, 0.4);
-      border-color: rgba(255, 255, 255, 0.6);
-    }
-    
-    .canvas-container {
-      position: relative;
-      background: rgba(0, 0, 0, 0.2);
-      border-radius: 15px;
-      overflow: hidden;
-      box-shadow: inset 0 2px 10px rgba(0, 0, 0, 0.3);
-    }
-    
-    canvas {
-      display: block;
-      width: 100%;
-      height: auto;
-    }
-    
-    .stats {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      background: rgba(0, 0, 0, 0.6);
-      padding: 15px;
-      border-radius: 10px;
-      font-family: 'Courier New', monospace;
-      font-size: 14px;
-      line-height: 1.6;
-      backdrop-filter: blur(5px);
-    }
-    
-    .info {
-      text-align: center;
-      margin-top: 20px;
-      opacity: 0.8;
-      font-size: 14px;
-    }
-    
-    .loading {
-      text-align: center;
-      padding: 50px;
-      font-size: 1.5em;
-    }
-    
-    .error {
-      text-align: center;
-      padding: 30px;
-      background: rgba(255, 0, 0, 0.2);
-      border-radius: 10px;
-      margin: 20px 0;
-    }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ultimate Physics Demo</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;display:flex;justify-content:center;align-items:center;color:#fff;overflow:hidden}
+.container{width:98%;max-width:1600px;background:rgba(255,255,255,0.08);backdrop-filter:blur(20px);border-radius:25px;padding:25px;box-shadow:0 20px 60px rgba(0,0,0,0.4);border:1px solid rgba(255,255,255,0.1)}
+h1{text-align:center;margin-bottom:8px;font-size:2.8em;text-shadow:3px 3px 6px rgba(0,0,0,0.4);background:linear-gradient(135deg,#fff,#a8c0ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.subtitle{text-align:center;margin-bottom:20px;opacity:0.95;font-size:1.15em;text-shadow:1px 1px 2px rgba(0,0,0,0.3)}
+.controls{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap;justify-content:center;align-items:center}
+button{background:rgba(255,255,255,0.15);border:2px solid rgba(255,255,255,0.25);color:white;padding:10px 22px;border-radius:12px;cursor:pointer;font-size:15px;font-weight:600;transition:all 0.25s ease;backdrop-filter:blur(10px);box-shadow:0 4px 15px rgba(0,0,0,0.2)}
+button:hover{background:rgba(255,255,255,0.28);transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,0.3)}
+button:active{transform:translateY(0);box-shadow:0 2px 10px rgba(0,0,0,0.3)}
+button.active{background:linear-gradient(135deg,rgba(255,255,255,0.35),rgba(255,255,255,0.25));border-color:rgba(255,255,255,0.5);box-shadow:0 0 20px rgba(255,255,255,0.3)}
+.canvas-container{position:relative;background:rgba(10,14,26,0.6);border-radius:18px;overflow:hidden;box-shadow:inset 0 4px 20px rgba(0,0,0,0.5),0 10px 40px rgba(0,0,0,0.3);border:1px solid rgba(255,255,255,0.05)}
+canvas{display:block;width:100%;height:auto;cursor:crosshair}
+.info{text-align:center;margin-top:15px;opacity:0.85;font-size:13px;line-height:1.6}
+.info-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-top:10px}
+.info-item{background:rgba(255,255,255,0.1);padding:8px 12px;border-radius:8px;font-size:12px;backdrop-filter:blur(5px)}
+.loading{text-align:center;padding:60px;font-size:1.6em;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:0.6}50%{opacity:1}}
+.error{text-align:center;padding:40px;background:rgba(255,50,50,0.25);border-radius:15px;margin:20px 0;border:2px solid rgba(255,100,100,0.4)}
+.badge{display:inline-block;background:rgba(255,255,255,0.2);padding:4px 12px;border-radius:12px;font-size:11px;margin:0 4px;font-weight:600}
+.separator{width:2px;height:30px;background:rgba(255,255,255,0.2);margin:0 8px}
+</style>
 </head>
 <body>
-  <div class="container">
-    <h1>🎮 Physics Engine Demo</h1>
-    <p class="subtitle">2D & 3D Unified Physics Simulation</p>
-    
-    <div id="loading" class="loading">
-      Loading UnifiedPhysicsEngine.js...
-    </div>
-    
-    <div id="error" class="error" style="display: none;"></div>
-    
-    <div id="main" style="display: none;">
-      <div class="controls">
-        <button id="btn2D" class="active">2D Mode</button>
-        <button id="btn3D">3D Mode</button>
-        <button id="btnAddCircle">Add Circle/Sphere</button>
-        <button id="btnAddBox">Add Box</button>
-        <button id="btnReset">Reset Scene</button>
-        <button id="btnPause">Pause</button>
-      </div>
-      
-      <div class="canvas-container">
-        <canvas id="canvas" width="1200" height="700"></canvas>
-        <div class="stats">
-          <div>Mode: <span id="statMode">2D</span></div>
-          <div>Bodies: <span id="statBodies">0</span></div>
-          <div>FPS: <span id="statFPS">60</span></div>
-          <div>Substeps: <span id="statSubsteps">4</span></div>
-        </div>
-      </div>
-      
-      <div class="info">
-        💡 Click on canvas to add objects • Drag to throw objects
-      </div>
-    </div>
-  </div>
+<div class="container">
+<h1>⚡ Ultimate Physics Engine</h1>
+<p class="subtitle">Production-Grade 2D/3D Physics Simulation with Advanced Rendering</p>
 
-  <script src="UnifiedPhysicsEngine.js"></script>
-  <script>
-    // エンジンのロード確認
-    window.addEventListener('load', () => {
-      const loading = document.getElementById('loading');
-      const error = document.getElementById('error');
-      const main = document.getElementById('main');
-      
-      if (typeof UnifiedPhysics === 'undefined') {
-        loading.style.display = 'none';
-        error.style.display = 'block';
-        error.innerHTML = `
-          <h3>⚠️ UnifiedPhysicsEngine.js が見つかりません</h3>
-          <p>同じディレクトリに UnifiedPhysicsEngine.js を配置してください。</p>
-        `;
-        return;
-      }
-      
-      loading.style.display = 'none';
-      main.style.display = 'block';
-      
-      // デモの初期化
-      initDemo();
-    });
-    
-    function initDemo() {
-      const { Vec2, Vec3, Body, PhysicsWorld } = UnifiedPhysics;
-      
-      const canvas = document.getElementById('canvas');
-      const ctx = canvas.getContext('2d');
-      
-      let mode = '2D';
-      let world = new PhysicsWorld('2D', { substeps: 4, maxIters: 8 });
-      let isPaused = false;
-      let mouseDown = false;
-      let mouseStart = null;
-      let lastTime = performance.now();
-      let fps = 60;
-      
-      // UI要素
-      const btn2D = document.getElementById('btn2D');
-      const btn3D = document.getElementById('btn3D');
-      const btnAddCircle = document.getElementById('btnAddCircle');
-      const btnAddBox = document.getElementById('btnAddBox');
-      const btnReset = document.getElementById('btnReset');
-      const btnPause = document.getElementById('btnPause');
-      
-      // 2Dシーンの初期化
-      function init2D() {
-        mode = '2D';
-        world = new PhysicsWorld('2D', { 
-          gravity: new Vec2(0, 980),
-          substeps: 4,
-          maxIters: 8
-        });
-        
-        // 地面
-        world.addBody(new Body({
-          dim: '2D',
-          type: 'box',
-          pos: new Vec2(600, 650),
-          halfWidth: 600,
-          halfHeight: 50,
-          static: true,
-          restitution: 0.3
-        }));
-        
-        // 壁
-        world.addBody(new Body({
-          dim: '2D',
-          type: 'box',
-          pos: new Vec2(50, 350),
-          halfWidth: 50,
-          halfHeight: 350,
-          static: true,
-          restitution: 0.3
-        }));
-        
-        world.addBody(new Body({
-          dim: '2D',
-          type: 'box',
-          pos: new Vec2(1150, 350),
-          halfWidth: 50,
-          halfHeight: 350,
-          static: true,
-          restitution: 0.3
-        }));
-        
-        // 斜めの台
-        world.addBody(new Body({
-          dim: '2D',
-          type: 'obb',
-          pos: new Vec2(300, 450),
-          halfWidth: 150,
-          halfHeight: 20,
-          angle: -0.3,
-          static: true,
-          restitution: 0.4
-        }));
-        
-        world.addBody(new Body({
-          dim: '2D',
-          type: 'obb',
-          pos: new Vec2(900, 450),
-          halfWidth: 150,
-          halfHeight: 20,
-          angle: 0.3,
-          static: true,
-          restitution: 0.4
-        }));
-        
-        // いくつかの動的オブジェクト
-        for (let i = 0; i < 5; i++) {
-          world.addBody(new Body({
-            dim: '2D',
-            type: 'circle',
-            pos: new Vec2(200 + i * 100, 100 + i * 50),
-            radius: 15 + Math.random() * 15,
-            restitution: 0.6,
-            friction: 0.3
-          }));
-        }
-        
-        for (let i = 0; i < 3; i++) {
-          world.addBody(new Body({
-            dim: '2D',
-            type: 'obb',
-            pos: new Vec2(700 + i * 80, 100 + i * 60),
-            halfWidth: 25,
-            halfHeight: 25,
-            angle: Math.random() * Math.PI,
-            restitution: 0.5,
-            friction: 0.4
-          }));
-        }
-      }
-      
-      // 3Dシーンの初期化
-      function init3D() {
-        mode = '3D';
-        world = new PhysicsWorld('3D', {
-          gravity: new Vec3(0, -980, 0),
-          substeps: 4,
-          maxIters: 8
-        });
-        
-        // 地面
-        world.addBody(new Body({
-          dim: '3D',
-          type: 'aabb',
-          pos: new Vec3(600, 680, 0),
-          halfExt: new Vec3(600, 20, 300),
-          static: true,
-          restitution: 0.3
-        }));
-        
-        // 壁
-        world.addBody(new Body({
-          dim: '3D',
-          type: 'aabb',
-          pos: new Vec3(50, 350, 0),
-          halfExt: new Vec3(50, 350, 300),
-          static: true,
-          restitution: 0.3
-        }));
-        
-        world.addBody(new Body({
-          dim: '3D',
-          type: 'aabb',
-          pos: new Vec3(1150, 350, 0),
-          halfExt: new Vec3(50, 350, 300),
-          static: true,
-          restitution: 0.3
-        }));
-        
-        // プラットフォーム
-        world.addBody(new Body({
-          dim: '3D',
-          type: 'aabb',
-          pos: new Vec3(400, 400, 0),
-          halfExt: new Vec3(100, 20, 100),
-          static: true,
-          restitution: 0.4
-        }));
-        
-        world.addBody(new Body({
-          dim: '3D',
-          type: 'aabb',
-          pos: new Vec3(800, 400, 0),
-          halfExt: new Vec3(100, 20, 100),
-          static: true,
-          restitution: 0.4
-        }));
-        
-        // いくつかの動的オブジェクト
-        for (let i = 0; i < 8; i++) {
-          const z = (i % 2) * 100 - 50;
-          world.addBody(new Body({
-            dim: '3D',
-            type: 'sphere',
-            pos: new Vec3(200 + i * 80, 100 + i * 40, z),
-            radius: 15 + Math.random() * 15,
-            restitution: 0.6,
-            friction: 0.3
-          }));
-        }
-      }
-      
-      // 描画関数
-      function render2D() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        for (const body of world.bodies) {
-          ctx.save();
-          
-          if (body.static) {
-            ctx.fillStyle = 'rgba(100, 100, 100, 0.8)';
-            ctx.strokeStyle = 'rgba(150, 150, 150, 0.9)';
-          } else {
-            ctx.fillStyle = body.sleeping ? 
-              'rgba(100, 150, 255, 0.6)' : 
-              'rgba(100, 200, 255, 0.8)';
-            ctx.strokeStyle = 'rgba(150, 220, 255, 0.9)';
-          }
-          ctx.lineWidth = 2;
-          
-          if (body.type === 'circle') {
-            ctx.beginPath();
-            ctx.arc(body.pos.x, body.pos.y, body.radius, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            
-            // 回転を示す線
-            ctx.beginPath();
-            ctx.moveTo(body.pos.x, body.pos.y);
-            ctx.lineTo(body.pos.x + body.radius, body.pos.y);
-            ctx.stroke();
-          } else if (body.type === 'box' || body.type === 'obb') {
-            const angle = body.angle || 0;
-            ctx.translate(body.pos.x, body.pos.y);
-            ctx.rotate(angle);
-            ctx.fillRect(-body.halfWidth, -body.halfHeight, 
-                        body.halfWidth * 2, body.halfHeight * 2);
-            ctx.strokeRect(-body.halfWidth, -body.halfHeight, 
-                          body.halfWidth * 2, body.halfHeight * 2);
-          }
-          
-          ctx.restore();
-        }
-      }
-      
-      function render3D() {
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // 簡易的な3D投影（等角投影風）
-        const sortedBodies = [...world.bodies].sort((a, b) => a.pos.z - b.pos.z);
-        
-        for (const body of sortedBodies) {
-          ctx.save();
-          
-          // Z座標に基づくスケールと明度
-          const scale = 1 + body.pos.z * 0.001;
-          const brightness = 0.7 + body.pos.z * 0.0005;
-          
-          if (body.static) {
-            ctx.fillStyle = `rgba(${100*brightness}, ${100*brightness}, ${100*brightness}, 0.8)`;
-            ctx.strokeStyle = `rgba(${150*brightness}, ${150*brightness}, ${150*brightness}, 0.9)`;
-          } else {
-            ctx.fillStyle = body.sleeping ?
-              `rgba(${100*brightness}, ${150*brightness}, ${255*brightness}, 0.6)` :
-              `rgba(${100*brightness}, ${200*brightness}, ${255*brightness}, 0.8)`;
-            ctx.strokeStyle = `rgba(${150*brightness}, ${220*brightness}, ${255*brightness}, 0.9)`;
-          }
-          ctx.lineWidth = 2;
-          
-          const x = body.pos.x + body.pos.z * 0.3;
-          const y = body.pos.y - body.pos.z * 0.3;
-          
-          if (body.type === 'sphere') {
-            ctx.beginPath();
-            ctx.arc(x, y, body.radius * scale, 0, Math.PI * 2);
-            ctx.fill();
-            ctx.stroke();
-            
-            // 影
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-            ctx.beginPath();
-            ctx.ellipse(body.pos.x, 680, body.radius * 1.2, body.radius * 0.5, 0, 0, Math.PI * 2);
-            ctx.fill();
-          } else if (body.type === 'aabb' || body.type === 'obb3') {
-            const hw = body.halfExt.x * scale;
-            const hh = body.halfExt.y * scale;
-            const hd = body.halfExt.z * scale;
-            
-            // 簡易的な箱の描画（等角投影風）
-            ctx.translate(x, y);
-            
-            // 前面
-            ctx.fillRect(-hw, -hh, hw * 2, hh * 2);
-            ctx.strokeRect(-hw, -hh, hw * 2, hh * 2);
-            
-            // 上面（明るく）
-            ctx.fillStyle = body.static ?
-              `rgba(${120*brightness}, ${120*brightness}, ${120*brightness}, 0.8)` :
-              `rgba(${120*brightness}, ${220*brightness}, ${255*brightness}, 0.8)`;
-            ctx.beginPath();
-            ctx.moveTo(-hw, -hh);
-            ctx.lineTo(-hw + hd * 0.5, -hh - hd * 0.3);
-            ctx.lineTo(hw + hd * 0.5, -hh - hd * 0.3);
-            ctx.lineTo(hw, -hh);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            
-            // 側面（暗く）
-            ctx.fillStyle = body.static ?
-              `rgba(${80*brightness}, ${80*brightness}, ${80*brightness}, 0.8)` :
-              `rgba(${80*brightness}, ${180*brightness}, ${235*brightness}, 0.8)`;
-            ctx.beginPath();
-            ctx.moveTo(hw, -hh);
-            ctx.lineTo(hw + hd * 0.5, -hh - hd * 0.3);
-            ctx.lineTo(hw + hd * 0.5, hh - hd * 0.3);
-            ctx.lineTo(hw, hh);
-            ctx.closePath();
-            ctx.fill();
-            ctx.stroke();
-            
-            // 影
-            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-            ctx.fillRect(body.pos.x - hw - 10, 680 - 5, hw * 2 + 20, 10);
-          }
-          
-          ctx.restore();
-        }
-      }
-      
-      // 更新ループ
-      function update() {
-        if (!isPaused) {
-          const now = performance.now();
-          const dt = Math.min((now - lastTime) / 1000, 0.033); // 最大33ms
-          lastTime = now;
-          
-          world.step(dt);
-          
-          // FPS計算
-          fps = fps * 0.9 + (1 / dt) * 0.1;
-        }
-        
-        if (mode === '2D') {
-          render2D();
-        } else {
-          render3D();
-        }
-        
-        // 統計更新
-        document.getElementById('statMode').textContent = mode;
-        document.getElementById('statBodies').textContent = world.bodies.length;
-        document.getElementById('statFPS').textContent = Math.round(fps);
-        document.getElementById('statSubsteps').textContent = world.substeps;
-        
-        requestAnimationFrame(update);
-      }
-      
-      // イベントハンドラ
-      btn2D.addEventListener('click', () => {
-        init2D();
-        btn2D.classList.add('active');
-        btn3D.classList.remove('active');
-      });
-      
-      btn3D.addEventListener('click', () => {
-        init3D();
-        btn3D.classList.add('active');
-        btn2D.classList.remove('active');
-      });
-      
-      btnAddCircle.addEventListener('click', () => {
-        if (mode === '2D') {
-          world.addBody(new Body({
-            dim: '2D',
-            type: 'circle',
-            pos: new Vec2(600, 50),
-            radius: 15 + Math.random() * 20,
-            restitution: 0.6,
-            friction: 0.3
-          }));
-        } else {
-          world.addBody(new Body({
-            dim: '3D',
-            type: 'sphere',
-            pos: new Vec3(600, 50, Math.random() * 100 - 50),
-            radius: 15 + Math.random() * 20,
-            restitution: 0.6,
-            friction: 0.3
-          }));
-        }
-      });
-      
-      btnAddBox.addEventListener('click', () => {
-        if (mode === '2D') {
-          world.addBody(new Body({
-            dim: '2D',
-            type: 'obb',
-            pos: new Vec2(600, 50),
-            halfWidth: 20 + Math.random() * 20,
-            halfHeight: 20 + Math.random() * 20,
-            angle: Math.random() * Math.PI,
-            restitution: 0.5,
-            friction: 0.4
-          }));
-        } else {
-          world.addBody(new Body({
-            dim: '3D',
-            type: 'aabb',
-            pos: new Vec3(600, 50, Math.random() * 100 - 50),
-            halfExt: new Vec3(
-              15 + Math.random() * 20,
-              15 + Math.random() * 20,
-              15 + Math.random() * 20
-            ),
-            restitution: 0.5,
-            friction: 0.4
-          }));
-        }
-      });
-      
-      btnReset.addEventListener('click', () => {
-        if (mode === '2D') {
-          init2D();
-        } else {
-          init3D();
-        }
-      });
-      
-      btnPause.addEventListener('click', () => {
-        isPaused = !isPaused;
-        btnPause.textContent = isPaused ? 'Resume' : 'Pause';
-      });
-      
-      // マウスインタラクション
-      canvas.addEventListener('mousedown', (e) => {
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-        
-        mouseDown = true;
-        mouseStart = { x, y };
-      });
-      
-      canvas.addEventListener('mouseup', (e) => {
-        if (!mouseDown) return;
-        
-        const rect = canvas.getBoundingClientRect();
-        const x = (e.clientX - rect.left) * (canvas.width / rect.width);
-        const y = (e.clientY - rect.top) * (canvas.height / rect.height);
-        
-        const dx = x - mouseStart.x;
-        const dy = y - mouseStart.y;
-        
-        if (mode === '2D') {
-          world.addBody(new Body({
-            dim: '2D',
-            type: Math.random() > 0.5 ? 'circle' : 'obb',
-            pos: new Vec2(mouseStart.x, mouseStart.y),
-            radius: 15 + Math.random() * 15,
-            halfWidth: 20,
-            halfHeight: 20,
-            angle: Math.random() * Math.PI,
-            vel: new Vec2(dx * 2, dy * 2),
-            restitution: 0.6,
-            friction: 0.3
-          }));
-        } else {
-          world.addBody(new Body({
-            dim: '3D',
-            type: Math.random() > 0.5 ? 'sphere' : 'aabb',
-            pos: new Vec3(mouseStart.x, mouseStart.y, 0),
-            radius: 15 + Math.random() * 15,
-            halfExt: new Vec3(20, 20, 20),
-            vel: new Vec3(dx * 2, dy * 2, 0),
-            restitution: 0.6,
-            friction: 0.3
-          }));
-        }
-        
-        mouseDown = false;
-      });
-      
-      canvas.addEventListener('mouseleave', () => {
-        mouseDown = false;
-      });
-      
-      // 初期化と開始
-      init2D();
-      update();
-    }
-  </script>
+<div id="loading" class="loading">🔄 Loading UnifiedPhysicsEngine.js...</div>
+
+<div id="error" class="error" style="display:none"></div>
+
+<div id="main" style="display:none">
+<div class="controls">
+<button id="btn2D" class="active">🎮 2D Mode</button>
+<button id="btn3D">🎲 3D Mode</button>
+<div class="separator"></div>
+<button id="btnCircle">⚪ Add Circle</button>
+<button id="btnBox">⬜ Add Box</button>
+<button id="btnPyramid">🔺 Pyramid</button>
+<button id="btnWall">🧱 Wall</button>
+<div class="separator"></div>
+<button id="btnReset">🔄 Reset</button>
+<button id="btnPause">⏸️ Pause</button>
+<button id="btnDebug">🐛 Debug</button>
+</div>
+
+<div class="canvas-container">
+<canvas id="canvas" width="1400" height="800"></canvas>
+</div>
+
+<div class="info">
+<div style="margin-bottom:8px">
+<span class="badge">🖱️ Click & Drag to throw objects</span>
+<span class="badge">🎯 Click to spawn</span>
+<span class="badge">⬆️⬇️⬅️➡️ Move camera</span>
+<span class="badge">🖱️ Scroll to zoom</span>
+<span class="badge">SPACE Add ball</span>
+</div>
+<div class="info-grid">
+<div class="info-item">💡 Press D for debug view</div>
+<div class="info-item">🔄 Press R to reset scene</div>
+<div class="info-item">⚡ High-precision impulse solver</div>
+<div class="info-item">🎨 Real-time lighting & shadows</div>
+</div>
+</div>
+</div>
+</div>
+
+<script src="UnifiedPhysicsEngine.js"></script>
+<script>
+window.addEventListener('load',()=>{
+const loading=document.getElementById('loading');
+const error=document.getElementById('error');
+const main=document.getElementById('main');
+
+if(typeof UnifiedPhysics==='undefined'){
+loading.style.display='none';
+error.style.display='block';
+error.innerHTML='<h3>⚠️ UnifiedPhysicsEngine.js not found</h3><p>Please place UnifiedPhysicsEngine.js in the same directory.</p>';
+return;
+}
+
+loading.style.display='none';
+main.style.display='block';
+initDemo();
+});
+
+function initDemo(){
+const{V2,V3,Circle,Box,Sphere,Cube,Body,PhysicsWorld,Renderer,Input,Material}=UnifiedPhysics;
+
+const canvas=document.getElementById('canvas');
+let mode='2D';
+let world=new PhysicsWorld('2D',{iterations:8,cellSize:120});
+let renderer=new Renderer(canvas,world);
+let input=new Input(canvas,world,renderer);
+let isPaused=false;
+let lastTime=performance.now();
+
+const btn2D=document.getElementById('btn2D');
+const btn3D=document.getElementById('btn3D');
+const btnCircle=document.getElementById('btnCircle');
+const btnBox=document.getElementById('btnBox');
+const btnPyramid=document.getElementById('btnPyramid');
+const btnWall=document.getElementById('btnWall');
+const btnReset=document.getElementById('btnReset');
+const btnPause=document.getElementById('btnPause');
+const btnDebug=document.getElementById('btnDebug');
+
+function init2D(){
+mode='2D';
+world=new PhysicsWorld('2D',{
+gravity:new V2(0,800),
+iterations:10,
+damping:0.999
+});
+renderer=new Renderer(canvas,world);
+input=new Input(canvas,world,renderer);
+renderer.camera.pos=new V2(0,0);
+renderer.camera.zoom=1;
+
+// Ground
+world.addBody(new Body({
+dim:'2D',
+shape:new Box(1400,60),
+pos:new V2(700,770),
+material:new Material({color:'#2c3e50',restitution:0.3}),
+static:true
+}));
+
+// Walls
+world.addBody(new Body({
+dim:'2D',
+shape:new Box(60,800),
+pos:new V2(30,400),
+material:new Material({color:'#34495e',restitution:0.3}),
+static:true
+}));
+
+world.addBody(new Body({
+dim:'2D',
+shape:new Box(60,800),
+pos:new V2(1370,400),
+material:new Material({color:'#34495e',restitution:0.3}),
+static:true
+}));
+
+// Platforms
+world.addBody(new Body({
+dim:'2D',
+shape:new Box(300,30),
+pos:new V2(300,550),
+material:new Material({color:'#7f8c8d',restitution:0.4}),
+static:true
+}));
+
+world.addBody(new Body({
+dim:'2D',
+shape:new Box(300,30),
+pos:new V2(1100,550),
+material:new Material({color:'#7f8c8d',restitution:0.4}),
+static:true
+}));
+
+// Seesaw
+const seesaw=world.addBody(new Body({
+dim:'2D',
+shape:new Box(400,20),
+pos:new V2(700,450),
+angle:0,
+material:new Material({color:'#e74c3c',restitution:0.5}),
+mass:50
+}));
+
+// Pivot
+world.addBody(new Body({
+dim:'2D',
+shape:new Box(40,60),
+pos:new V2(700,470),
+material:new Material({color:'#c0392b',restitution:0.1}),
+static:true
+}));
+
+// Dynamic objects
+const colors=['#ff6b6b','#4ecdc4','#45b7d1','#f9ca24','#6c5ce7','#fd79a8'];
+for(let i=0;i<8;i++){
+world.addBody(new Body({
+dim:'2D',
+shape:new Circle(12+Math.random()*18),
+pos:new V2(200+i*150,100+Math.random()*100),
+material:new Material({
+color:colors[Math.floor(Math.random()*colors.length)],
+restitution:0.6+Math.random()*0.3,
+staticFriction:0.5,
+dynamicFriction:0.3
+})
+}));
+}
+
+for(let i=0;i<6;i++){
+world.addBody(new Body({
+dim:'2D',
+shape:new Box(25+Math.random()*25,25+Math.random()*25),
+pos:new V2(300+i*120,200+Math.random()*100),
+angle:Math.random()*Math.PI,
+material:new Material({
+color:colors[Math.floor(Math.random()*colors.length)],
+restitution:0.4+Math.random()*0.3,
+staticFriction:0.6,
+dynamicFriction:0.4
+})
+}));
+}
+}
+
+function init3D(){
+mode='3D';
+world=new PhysicsWorld('3D',{
+gravity:new V3(0,-800,0),
+iterations:10,
+damping:0.998
+});
+renderer=new Renderer(canvas,world);
+input=new Input(canvas,world,renderer);
+renderer.camera.pos=new V3(0,0,400);
+renderer.camera.zoom=1;
+
+// Ground
+world.addBody(new Body({
+dim:'3D',
+shape:new Cube(1400,40,600),
+pos:new V3(700,790,0),
+material:new Material({color:'#2c3e50',restitution:0.3}),
+static:true
+}));
+
+// Walls
+world.addBody(new Body({
+dim:'3D',
+shape:new Cube(60,800,600),
+pos:new V3(30,400,0),
+material:new Material({color:'#34495e',restitution:0.3}),
+static:true
+}));
+
+world.addBody(new Body({
+dim:'3D',
+shape:new Cube(60,800,600),
+pos:new V3(1370,400,0),
+material:new Material({color:'#34495e',restitution:0.3}),
+static:true
+}));
+
+// Platforms at different depths
+world.addBody(new Body({
+dim:'3D',
+shape:new Cube(250,30,100),
+pos:new V3(300,500,100),
+material:new Material({color:'#7f8c8d',restitution:0.4}),
+static:true
+}));
+
+world.addBody(new Body({
+dim:'3D',
+shape:new Cube(250,30,100),
+pos:new V3(700,400,0),
+material:new Material({color:'#95a5a6',restitution:0.4}),
+static:true
+}));
+
+world.addBody(new Body({
+dim:'3D',
+shape:new Cube(250,30,100),
+pos:new V3(1100,500,-100),
+material:new Material({color:'#7f8c8d',restitution:0.4}),
+static:true
+}));
+
+// Dynamic objects with depth variation
+const colors=['#ff6b6b','#4ecdc4','#45b7d1','#f9ca24','#6c5ce7','#fd79a8'];
+for(let i=0;i<12;i++){
+const z=(i%3-1)*150;
+world.addBody(new Body({
+dim:'3D',
+shape:new Sphere(12+Math.random()*18),
+pos:new V3(200+i*80,100+Math.random()*150,z),
+material:new Material({
+color:colors[Math.floor(Math.random()*colors.length)],
+restitution:0.6+Math.random()*0.3,
+staticFriction:0.5,
+dynamicFriction:0.3
+})
+}));
+}
+
+for(let i=0;i<8;i++){
+const z=(i%3-1)*120;
+world.addBody(new Body({
+dim:'3D',
+shape:new Cube(20+Math.random()*30,20+Math.random()*30,20+Math.random()*30),
+pos:new V3(300+i*120,250+Math.random()*100,z),
+material:new Material({
+color:colors[Math.floor(Math.random()*colors.length)],
+restitution:0.4+Math.random()*0.3,
+staticFriction:0.6,
+dynamicFriction:0.4
+})
+}));
+}
+}
+
+function createPyramid(){
+const colors=['#ff6b6b','#4ecdc4','#45b7d1','#f9ca24','#6c5ce7','#fd79a8'];
+const levels=6;
+const baseY=mode==='2D'?650:650;
+const size=35;
+
+for(let level=0;level<levels;level++){
+const count=levels-level;
+const y=baseY-level*size*1.1;
+const startX=700-(count-1)*size*0.55;
+
+for(let i=0;i<count;i++){
+const x=startX+i*size*1.1;
+if(mode==='2D'){
+world.addBody(new Body({
+dim:'2D',
+shape:new Box(size,size),
+pos:new V2(x,y),
+material:new Material({
+color:colors[level%colors.length],
+restitution:0.3,
+staticFriction:0.8,
+dynamicFriction:0.6
+})
+}));
+}else{
+const z=(Math.random()-0.5)*100;
+world.addBody(new Body({
+dim:'3D',
+shape:new Cube(size,size,size),
+pos:new V3(x,y,z),
+material:new Material({
+color:colors[level%colors.length],
+restitution:0.3,
+staticFriction:0.8,
+dynamicFriction:0.6
+})
+}));
+}
+}
+}
+renderer.addParticles(mode==='2D'?new V2(700,650):new V3(700,650,0),30,'255,215,0');
+}
+
+function createWall(){
+const colors=['#e74c3c','#e67e22','#f39c12'];
+const rows=8;
+const cols=10;
+const size=30;
+const startX=700-cols*size*0.5;
+const startY=mode==='2D'?650:650;
+
+for(let row=0;row<rows;row++){
+for(let col=0;col<cols;col++){
+const offset=row%2===0?0:size*0.5;
+const x=startX+col*size+offset;
+const y=startY-row*size*1.05;
+if(mode==='2D'){
+world.addBody(new Body({
+dim:'2D',
+shape:new Box(size*0.9,size*0.45),
+pos:new V2(x,y),
+material:new Material({
+color:colors[row%colors.length],
+restitution:0.2,
+staticFriction:0.9,
+dynamicFriction:0.7
+})
+}));
+}else{
+world.addBody(new Body({
+dim:'3D',
+shape:new Cube(size*0.9,size*0.45,size*0.7),
+pos:new V3(x,y,(Math.random()-0.5)*50),
+material:new Material({
+color:colors[row%colors.length],
+restitution:0.2,
+staticFriction:0.9,
+dynamicFriction:0.7
+})
+}));
+}
+}
+}
+}
+
+btn2D.addEventListener('click',()=>{
+init2D();
+btn2D.classList.add('active');
+btn3D.classList.remove('active');
+});
+
+btn3D.addEventListener('click',()=>{
+init3D();
+btn3D.classList.add('active');
+btn2D.classList.remove('active');
+});
+
+btnCircle.addEventListener('click',()=>{
+const colors=['#ff6b6b','#4ecdc4','#45b7d1','#f9ca24','#6c5ce7'];
+const pos=renderer.camera.pos.clone();
+if(mode==='2D'){
+pos.y-=300;
+world.addBody(new Body({
+dim:'2D',
+shape:new Circle(15+Math.random()*20),
+pos,
+material:new Material({
+color:colors[Math.floor(Math.random()*colors.length)],
+restitution:0.7
+})
+}));
+}else{
+pos.y+=300;
+world.addBody(new Body({
+dim:'3D',
+shape:new Sphere(15+Math.random()*20),
+pos,
+material:new Material({
+color:colors[Math.floor(Math.random()*colors.length)],
+restitution:0.7
+})
+}));
+}
+renderer.addParticles(pos,8);
+});
+
+btnBox.addEventListener('click',()=>{
+const colors=['#ff6b6b','#4ecdc4','#45b7d1','#f9ca24','#6c5ce7'];
+const pos=renderer.camera.pos.clone();
+if(mode==='2D'){
+pos.y-=300;
+world.addBody(new Body({
+dim:'2D',
+shape:new Box(30+Math.random()*30,30+Math.random()*30),
+pos,
+angle:Math.random()*Math.PI,
+material:new Material({
+color:colors[Math.floor(Math.random()*colors.length)],
+restitution:0.5
+})
+}));
+}else{
+pos.y+=300;
+world.addBody(new Body({
+dim:'3D',
+shape:new Cube(30+Math.random()*25,30+Math.random()*25,30+Math.random()*25),
+pos,
+material:new Material({
+color:colors[Math.floor(Math.random()*colors.length)],
+restitution:0.5
+})
+}));
+}
+renderer.addParticles(pos,8);
+});
+
+btnPyramid.addEventListener('click',createPyramid);
+btnWall.addEventListener('click',createWall);
+
+btnReset.addEventListener('click',()=>{
+if(mode==='2D')init2D();else init3D();
+});
+
+btnPause.addEventListener('click',()=>{
+isPaused=!isPaused;
+btnPause.textContent=isPaused?'▶️ Resume':'⏸️ Pause';
+});
+
+btnDebug.addEventListener('click',()=>{
+renderer.debugDraw=!renderer.debugDraw;
+btnDebug.classList.toggle('active');
+});
+
+function animate(time){
+const dt=Math.min((time-lastTime)/1000,0.033);
+lastTime=time;
+
+if(!isPaused){
+world.step(dt);
+input.update(dt);
+}
+
+renderer.render(dt);
+requestAnimationFrame(animate);
+}
+
+init2D();
+animate(performance.now());
+}
+</script>
 </body>
 </html>
